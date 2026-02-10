@@ -12,7 +12,7 @@ Stoa Chain transforms the existing Kadena Chainweb Node (v2.32.0) into a new blo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Contract Verification** - Verify STOA coin contract works correctly in Pact REPL before any integration
+- [x] **Phase 1: Contract Verification** - Verify STOA coin contract works correctly in Pact REPL before any integration
 - [ ] **Phase 2: Version Definition and Gas Limits** - Create Stoa version with 10-chain Petersen graph and updated gas configuration
 - [ ] **Phase 3: Genesis Payload Generation** - Generate genesis payloads for chain 0 (full init) and chains 1-9 (coin only) via Ea tool
 - [ ] **Phase 4: Tokenomics** - Create STOA miner rewards CSV with declining emissions and update hash constants
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Install Pact REPL and deploy STOA contract with bundled interfaces (CONT-01, CONT-02, CONT-03)
-- [ ] 01-02-PLAN.md — Verify runtime touchpoints: coinbase, fund-tx, cross-chain transfers (CONT-04, CONT-05, CONT-06)
+- [x] 01-01-PLAN.md — Install Pact REPL and deploy STOA contract with bundled interfaces (CONT-01, CONT-02, CONT-03)
+- [x] 01-02-PLAN.md — Verify runtime touchpoints: coinbase, fund-tx, cross-chain transfers (CONT-04, CONT-05, CONT-06)
 
 ### Phase 2: Version Definition and Gas Limits
 **Goal**: A complete Stoa version definition exists in the codebase with 10-chain Petersen graph topology, all forks at genesis, and gas limits configured at both version and configuration levels
@@ -42,14 +42,14 @@ Plans:
 **Requirements**: VERS-01, VERS-02, VERS-03, VERS-04, VERS-05, VERS-06, GAS-01, GAS-02, GAS-03
 **Success Criteria** (what must be TRUE):
   1. A Stoa version definition with unique ChainwebVersionCode exists, uses petersenChainGraph (10 chains, degree 3, diameter 2), and all ChainMap entries reference only chains 0-9
-  2. All 32 Fork constructors have entries in _versionForks set to ForkAtGenesis, and validateVersion passes without errors when version is registered
+  2. All 37 Fork constructors have entries in _versionForks set to ForkAtGenesis, and validateVersion passes without errors when version is registered
   3. The version is registered in Registry.hs knownVersions and is selectable via node CLI arguments
   4. _versionMaxBlockGasLimit is set to 500,000 and _configBlockGasLimit defaults to 400,000, and startup clamping logic correctly applies min(config, versionMax)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Create Stoa version definition module with Petersen graph, all forks at genesis, and 500k gas limit (VERS-01, VERS-02, VERS-03, VERS-04, GAS-01)
+- [ ] 02-02-PLAN.md — Wire Stoa into Registry, Configuration, and cabal; set 400k gas default; verify compilation (VERS-05, VERS-06, GAS-02, GAS-03)
 
 ### Phase 3: Genesis Payload Generation
 **Goal**: Genesis payloads are generated via the Ea tool for all 10 chains, with chain 0 containing the full STOA + UR-STOA + vault initialization and chains 1-9 containing coin module deployment only
@@ -102,8 +102,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Contract Verification | 0/2 | Not started | - |
-| 2. Version Definition and Gas Limits | 0/2 | Not started | - |
+| 1. Contract Verification | 2/2 | COMPLETE | 2026-02-10 |
+| 2. Version Definition and Gas Limits | 0/2 | PLANNED | - |
 | 3. Genesis Payload Generation | 0/2 | Not started | - |
 | 4. Tokenomics | 0/1 | Not started | - |
 | 5. Integration and Validation | 0/2 | Not started | - |
