@@ -9,30 +9,30 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-Phase: 2 of 5 (Version Definition and Gas Limits)
-Plan: 1 of 2 in current phase (executing)
-Status: Phase 2 IN PROGRESS. Plan 02-01 complete, Plan 02-02 next.
-Last activity: 2026-02-11 -- Plan 02-01 executed (Stoa version definition)
+Phase: 2 of 5 (Version Definition and Gas Limits) -- COMPLETE
+Plan: 2 of 2 in current phase (complete)
+Status: Phase 2 COMPLETE. All plans executed. Ready for Phase 3.
+Last activity: 2026-02-11 -- Plan 02-02 executed (version wiring + gas config + build verification)
 
-Progress: [███░░░░░░░] 30%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~45 min each
-- Total execution time: ~2h 1min
+- Total plans completed: 4
+- Average duration: ~31 min each
+- Total execution time: ~2h 45min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 2/2 | ~2h | ~1h |
-| 2 | 1/2 | 1min | 1min |
+| 2 | 2/2 | 45min | ~22min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (complete), 01-02 (complete), 02-01 (complete)
-- Trend: Accelerating
+- Last 5 plans: 01-01 (complete), 01-02 (complete), 02-01 (complete), 02-02 (complete)
+- Trend: Accelerating (Phase 2 complete)
 
 *Updated after each plan completion*
 
@@ -48,6 +48,7 @@ Recent decisions affecting current work:
 - Plan 01-02: TRANSFER_XCHAIN is @event (not @managed) in STOA — defpact acquires it internally, no pre-acquisition needed
 - Phase 1: Contract fits within 300,000 gas budget. Coinbase emits ~0.41 STOA/block in year 0.
 - Plan 02-01: Version code 0x0000_000A chosen; PoW disabled for Phase 2 testing; devnet genesis payloads used as temporaries
+- Plan 02-02: Gas default raised to 400k (safe via clamping); 3 pre-existing dependency conflicts fixed (hourglass, asn1-types, bytesmith); full build verified (237 modules, zero warnings)
 
 ### Pending Todos
 
@@ -57,10 +58,10 @@ None yet.
 
 - ~~STOA coin contract has not been verified working~~ RESOLVED
 - ~~Runtime touchpoints not tested~~ RESOLVED
-- Phase 2 requires Haskell tooling (GHC, cabal) for compilation — GHCup was installed during Phase 1
+- ~~Phase 2 requires Haskell tooling (GHC, cabal) for compilation~~ RESOLVED (GHCup installed, build passes)
 
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 02-01-PLAN.md (Stoa version definition)
-Resume file: .planning/phases/02-version-definition-and-gas-limits/02-02-PLAN.md
+Stopped at: Completed 02-02-PLAN.md (Phase 2 complete -- version wiring + gas config + build)
+Resume file: Phase 3 -- Genesis Payloads
