@@ -1,0 +1,413 @@
+;;
+;; STOA Coin Contract - Deployment and Verification REPL
+;; Phase 1, Plan 01-01: Deploy STOA contract with bundled interfaces
+;;
+
+;; Configure gas model with higher limit for large contract
+(env-gasmodel "table")
+(env-gaslimit 300000)
+
+;; ======================================================
+;; Transaction 1: Define governance keysets
+;; The 7 Stoa Master keysets must exist before loading
+;; the contract because GOVERNANCE uses keyset-ref-guard
+;; ======================================================
+
+(begin-tx "Define governance keysets")
+(env-data
+  { "stoa-ns.stoa_master_one": ["master-key-1"]
+  , "stoa-ns.stoa_master_two": ["master-key-2"]
+  , "stoa-ns.stoa_master_three": ["master-key-3"]
+  , "stoa-ns.stoa_master_four": ["master-key-4"]
+  , "stoa-ns.stoa_master_five": ["master-key-5"]
+  , "stoa-ns.stoa_master_six": ["master-key-6"]
+  , "stoa-ns.stoa_master_seven": ["master-key-7"]
+  })
+(define-keyset "stoa-ns.stoa_master_one" (read-keyset "stoa-ns.stoa_master_one"))
+(define-keyset "stoa-ns.stoa_master_two" (read-keyset "stoa-ns.stoa_master_two"))
+(define-keyset "stoa-ns.stoa_master_three" (read-keyset "stoa-ns.stoa_master_three"))
+(define-keyset "stoa-ns.stoa_master_four" (read-keyset "stoa-ns.stoa_master_four"))
+(define-keyset "stoa-ns.stoa_master_five" (read-keyset "stoa-ns.stoa_master_five"))
+(define-keyset "stoa-ns.stoa_master_six" (read-keyset "stoa-ns.stoa_master_six"))
+(define-keyset "stoa-ns.stoa_master_seven" (read-keyset "stoa-ns.stoa_master_seven"))
+(commit-tx)
+
+;; ======================================================
+;; Transaction 2: Deploy STOA coin contract
+;; Loads all 4 bundled interfaces + coin module + 6 tables
+;; ======================================================
+
+(begin-tx "Deploy STOA coin contract")
+(load "new-coin.pact")
+(commit-tx)
+
+;; ======================================================
+;; Transaction 3: Verify contract deployment
+;; ======================================================
+
+(begin-tx "Verify contract deployment")
+(use coin)
+
+;; Verify module name is "coin" by calling its functions
+(expect "precision returns 12" 12 (precision))
+
+;; Verify VALID_CHAIN_IDS has 10 entries (chains 0-9)
+(expect "10 valid chain IDs" 10 (length VALID_CHAIN_IDS))
+(expect "first chain is 0" "0" (at 0 VALID_CHAIN_IDS))
+(expect "last chain is 9" "9" (at 9 VALID_CHAIN_IDS))
+
+;; Verify magic capabilities can be acquired
+(test-capability (COINBASE))
+(test-capability (GAS))
+(test-capability (GENESIS))
+(test-capability (REMEDIATE))
+
+(commit-tx)
+
+;; ======================================================
+;; Transaction 4: Test UC_YearZeroBlocks for date bug
+;; Line 396 has "{}-21-31" which looks like month 21
+;; (should be 12 for December)
+;; ======================================================
+
+(begin-tx "Test UC_YearZeroBlocks for date bug")
+(use coin)
+(env-chain-data { "block-time": (time "2026-06-15T12:00:00Z") })
+
+;; UC_YearZeroBlocks tries to parse "{year}-21-31 23:59:59"
+;; If month 21 is invalid, this will fail and confirm the bug
+(let ((blocks (UC_YearZeroBlocks)))
+  (expect "Year zero blocks is positive" true (> blocks 0))
+  (expect "Year zero blocks is reasonable (between 1000 and 100000000)"
+    true
+    (and (> blocks 1000) (< blocks 100000000)))
+)
+(commit-tx)
+
+;; ======================================================
+;; Transaction 5: Test basic account operations
+;; ======================================================
+
+(begin-tx "Test basic account operations")
+(use coin)
+(env-data { "test-account": ["test-key-1"] })
+(env-keys ["test-key-1"])
+(create-account "test-account" (read-keyset "test-account"))
+(expect "new account has 0 balance" 0.0 (get-balance "test-account"))
+(expect "details returns correct structure"
+  { "account": "test-account", "balance": 0.0, "guard": (read-keyset "test-account") }
+  (details "test-account"))
+(commit-tx)
+
+;; ======================================================
+;; Plan 01-02: Runtime Touchpoint Verification
+;; ======================================================
+
+;; ======================================================
+;; Task 1A: Coinbase on chain 1 (non-0, 90% emission only)
+;; ======================================================
+
+(begin-tx "Coinbase on chain 1")
+(use coin)
+(env-chain-data {"chain-id": "1", "block-time": (time "2026-06-15T12:00:00Z")})
+
+;; Grant COINBASE magic capability
+(test-capability (COINBASE))
+
+;; Set miner keyset data (amount will be ignored by STOA coinbase)
+(env-data {"miner-ks": ["miner-key-1"]})
+(env-keys ["miner-key-1"])
+
+;; Execute coinbase — the amount (2.304523) is passed by runtime but ignored
+(coinbase "miner1" (read-keyset "miner-ks") 2.304523)
+
+;; Verify miner received a positive balance (the 90% block emission)
+(expect "miner1 balance is positive" true (> (get-balance "miner1") 0.0))
+
+;; Capture the emission values for verification
+(let ((emissions (URC_Emissions)))
+  (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+    ;; block emission should be positive
+    (expect "block emission positive" true (> block-em 0.0))
+    ;; urv emission should be positive
+    (expect "urv emission positive" true (> urv-em 0.0))
+    ;; miner on chain 1 gets exactly block-emission (90%)
+    (expect "miner gets block emission" block-em (get-balance "miner1"))
+  ))
+(commit-tx)
+
+;; ======================================================
+;; Task 1B: Initialize STOA chain on chain 0
+;; ======================================================
+
+(begin-tx "Initialize STOA chain on chain 0")
+(use coin)
+(env-chain-data {"chain-id": "0", "block-time": (time "2026-01-01T00:00:01Z")})
+
+;; Grant GENESIS capability (as runtime does for genesis transactions)
+(test-capability (GENESIS))
+
+;; Set foundation account data with one of the master keys
+(env-data {
+  "foundation-ks": ["foundation-key-1"]
+, "stoa-ns.stoa_master_one": ["master-key-1"]
+})
+(env-keys ["foundation-key-1", "master-key-1"])
+
+;; Initialize STOA chain (creates foundation account, mints genesis supply, initializes vault)
+(A_InitialiseStoaChain "stoa-foundation" (read-keyset "foundation-ks"))
+
+;; Verify genesis supply minted
+(expect "foundation has 16M STOA" 16000000.0 (get-balance "stoa-foundation"))
+
+;; Verify UrStoa vault is initialized (urstoa-supply starts at 1.0)
+(expect "vault UrStoa supply is 1.0" 1.0 (UR_URV|VaultUrSupply))
+(commit-tx)
+
+;; ======================================================
+;; Task 1B cont: Coinbase on chain 0 with vault injection
+;; ======================================================
+
+(begin-tx "Coinbase on chain 0 with vault injection")
+(use coin)
+(env-chain-data {"chain-id": "0", "block-time": (time "2026-06-15T12:00:00Z")})
+(test-capability (COINBASE))
+
+(env-data {"miner0-ks": ["miner-key-0"]})
+(env-keys ["miner-key-0"])
+
+;; Capture vault STOA supply before coinbase
+(let ((vault-before (UR_URV|VaultSupply)))
+  ;; Execute coinbase on chain 0 (mints 90%+10% to miner, then transfers 10% to vault)
+  (coinbase "miner0" (read-keyset "miner0-ks") 2.304523)
+
+  (let ((emissions (URC_Emissions)))
+    (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+      ;; miner on chain 0 gets block-emission only (urv-emission transferred to vault)
+      (expect "miner0 has block emission" block-em (get-balance "miner0"))
+      ;; Vault STOA supply increased by urv-emission
+      (expect "vault supply increased" (+ vault-before urv-em) (UR_URV|VaultSupply))
+    )))
+(commit-tx)
+
+;; ======================================================
+;; Task 1C: Verify emission formula at different years
+;; ======================================================
+
+(begin-tx "Emission formula verification")
+(use coin)
+(env-chain-data {"block-time": (time "2026-06-15T12:00:00Z")})
+;; Year 0 (2026): yearly emission should be ~4,840,000 STOA
+(let ((year-emission (UC_YearEmission 0)))
+  (expect "Year 0 emission ~4840000" true
+    (and (> year-emission 4839000.0) (< year-emission 4841000.0))))
+
+;; Year 1 (2027): yearly emission should be ~4,754,059.405940594059
+(let ((year-emission (UC_YearEmission 1)))
+  (expect "Year 1 emission ~4754059" true
+    (and (> year-emission 4754000.0) (< year-emission 4755000.0))))
+
+;; Year 2 (2028): yearly emission should be ~4,670,646.476412347117
+(let ((year-emission (UC_YearEmission 2)))
+  (expect "Year 2 emission ~4670646" true
+    (and (> year-emission 4670000.0) (< year-emission 4671000.0))))
+
+(commit-tx)
+
+;; ======================================================
+;; Task 2A: fund-tx defpact test (buy-gas + redeem-gas)
+;; ======================================================
+
+(begin-tx "fund-tx defpact test")
+(use coin)
+(env-chain-data {"chain-id": "1", "block-time": (time "2026-06-15T12:00:00Z")})
+
+;; Create and fund a sender account
+(env-data {"sender-ks": ["sender-key"], "miner-ftx-ks": ["miner-ftx-key"]})
+(env-keys ["sender-key", "miner-ftx-key"])
+
+(create-account "sender-ftx" (read-keyset "sender-ks"))
+(test-capability (CREDIT "sender-ftx"))
+(credit "sender-ftx" (read-keyset "sender-ks") 10.0)
+
+;; Step 0: buy-gas via fund-tx
+(test-capability (GAS))
+(fund-tx "sender-ftx" "miner-ftx" (read-keyset "miner-ftx-ks") 1.0)
+
+;; Verify sender was debited by total (1.0 STOA for gas)
+(expect "sender debited by 1.0 for gas" 9.0 (get-balance "sender-ftx"))
+
+;; Step 1: redeem-gas (continue defpact)
+;; Fee is the actual gas consumed (e.g., 0.4 out of 1.0 max)
+(env-data {"fee": 0.4})
+(continue-pact 1)
+
+;; Verify gas accounting
+(expect "miner received fee of 0.4" 0.4 (get-balance "miner-ftx"))
+(expect "sender refunded 0.6" 9.6 (get-balance "sender-ftx"))
+
+(commit-tx)
+
+;; ======================================================
+;; Task 2B: Direct buy-gas / redeem-gas test
+;; ======================================================
+
+(begin-tx "Direct buy-gas / redeem-gas test")
+(use coin)
+(env-chain-data {"chain-id": "2", "block-time": (time "2026-06-15T12:00:00Z")})
+
+;; Create and fund sender
+(env-data {"sender2-ks": ["sender2-key"], "miner2-ks": ["miner2-key"]})
+(env-keys ["sender2-key", "miner2-key"])
+
+(create-account "sender-bg" (read-keyset "sender2-ks"))
+(test-capability (CREDIT "sender-bg"))
+(credit "sender-bg" (read-keyset "sender2-ks") 5.0)
+
+;; buy-gas: debit sender for total
+(test-capability (GAS))
+(buy-gas "sender-bg" 1.0)
+
+(expect "sender debited by 1.0 after buy-gas" 4.0 (get-balance "sender-bg"))
+
+;; redeem-gas: credit miner with fee, refund sender remainder
+(env-data {"fee": 0.3, "miner2-ks": ["miner2-key"]})
+(redeem-gas "miner-bg" (read-keyset "miner2-ks") "sender-bg" 1.0)
+
+(expect "miner received 0.3 fee" 0.3 (get-balance "miner-bg"))
+(expect "sender refunded 0.7" 4.7 (get-balance "sender-bg"))
+
+(commit-tx)
+
+;; ======================================================
+;; Task 2C: Gas edge cases
+;; ======================================================
+
+(begin-tx "Gas edge cases")
+(use coin)
+
+;; GAS capability required
+(env-data {"miner2-ks": ["miner2-key"]})
+(expect-failure "fund-tx fails without GAS"
+  "not granted"
+  (fund-tx "sender-bg" "miner-bg" (read-keyset "miner2-ks") 1.0))
+
+(expect-failure "buy-gas fails without GAS"
+  "not granted"
+  (buy-gas "sender-bg" 1.0))
+
+(commit-tx)
+
+;; ======================================================
+;; Task 3A: Cross-chain transfer: chain 0 -> chain 5
+;; ======================================================
+
+(begin-tx "Cross-chain transfer: chain 0 -> chain 5")
+(use coin)
+(env-chain-data {"chain-id": "0"})
+(env-hash (hash "xchain-0-to-5"))
+
+;; Set up sender with funds
+(env-data {"xsender-ks": ["xsender-key"], "xrecv-ks": ["xrecv-key"]})
+(env-keys ["xsender-key"])
+
+(create-account "xsender" (read-keyset "xsender-ks"))
+(test-capability (CREDIT "xsender"))
+(credit "xsender" (read-keyset "xsender-ks") 5.0)
+
+;; Step 0: Debit on chain 0 (source)
+;; TRANSFER_XCHAIN is @event (not managed), acquired by the defpact via with-capability
+;; Sender's key must be in scope for DEBIT guard enforcement
+(transfer-crosschain "xsender" "xreceiver" (read-keyset "xrecv-ks") "5" 2.0)
+
+(expect "sender debited on source chain" 3.0 (get-balance "xsender"))
+
+;; Step 1: Credit on chain 5 (target)
+(env-chain-data {"chain-id": "5"})
+(continue-pact 1 false (hash "xchain-0-to-5"))
+
+(expect "receiver credited on target chain" 2.0 (get-balance "xreceiver"))
+(commit-tx)
+
+;; ======================================================
+;; Task 3B: Cross-chain: wrong chain in resume
+;; ======================================================
+
+(begin-tx "Cross-chain: wrong chain in resume")
+(use coin)
+(env-chain-data {"chain-id": "3"})
+(env-hash (hash "xchain-wrong"))
+
+(env-data {"xsender2-ks": ["xsender2-key"], "xrecv2-ks": ["xrecv2-key"]})
+(env-keys ["xsender2-key"])
+
+(create-account "xsender2" (read-keyset "xsender2-ks"))
+(test-capability (CREDIT "xsender2"))
+(credit "xsender2" (read-keyset "xsender2-ks") 5.0)
+
+(transfer-crosschain "xsender2" "xreceiver2" (read-keyset "xrecv2-ks") "7" 1.0)
+
+;; Try to resume on wrong chain (chain 3 instead of 7)
+(expect-failure "resume on wrong chain fails"
+  "Yield provenance"
+  (continue-pact 1 false (hash "xchain-wrong")))
+
+(rollback-tx)
+
+;; ======================================================
+;; Task 3C: Cross-chain: invalid chain IDs (>= 10)
+;; ======================================================
+
+(begin-tx "Cross-chain: invalid chain ID")
+(use coin)
+(env-chain-data {"chain-id": "0"})
+
+(env-data {"xsender3-ks": ["xsender3-key"], "xrecv3-ks": ["xrecv3-key"]})
+(env-keys ["xsender3-key"])
+
+(create-account "xsender3" (read-keyset "xsender3-ks"))
+(test-capability (CREDIT "xsender3"))
+(credit "xsender3" (read-keyset "xsender3-ks") 5.0)
+
+;; Chain 10 should fail (STOA has only 10 chains: 0-9)
+(expect-failure "transfer to chain 10 fails"
+  "not a valid chainweb chain id"
+  (transfer-crosschain "xsender3" "xreceiver3" (read-keyset "xrecv3-ks") "10" 1.0))
+
+;; Chain 19 should also fail
+(expect-failure "transfer to chain 19 fails"
+  "not a valid chainweb chain id"
+  (transfer-crosschain "xsender3" "xreceiver3" (read-keyset "xrecv3-ks") "19" 1.0))
+
+;; Same chain should fail
+(expect-failure "transfer to same chain fails"
+  "same chain"
+  (transfer-crosschain "xsender3" "xreceiver3" (read-keyset "xrecv3-ks") "0" 1.0))
+
+(rollback-tx)
+
+;; ======================================================
+;; Task 3D: Cross-chain: chain 8 -> chain 9 (boundary)
+;; ======================================================
+
+(begin-tx "Cross-chain: chain 8 -> chain 9")
+(use coin)
+(env-chain-data {"chain-id": "8"})
+(env-hash (hash "xchain-8-to-9"))
+
+(env-data {"xsender4-ks": ["xsender4-key"], "xrecv4-ks": ["xrecv4-key"]})
+(env-keys ["xsender4-key"])
+
+(create-account "xsender4" (read-keyset "xsender4-ks"))
+(test-capability (CREDIT "xsender4"))
+(credit "xsender4" (read-keyset "xsender4-ks") 3.0)
+
+(transfer-crosschain "xsender4" "xreceiver4" (read-keyset "xrecv4-ks") "9" 1.5)
+
+(expect "sender debited" 1.5 (get-balance "xsender4"))
+
+(env-chain-data {"chain-id": "9"})
+(continue-pact 1 false (hash "xchain-8-to-9"))
+
+(expect "receiver credited on chain 9" 1.5 (get-balance "xreceiver4"))
+(commit-tx)
