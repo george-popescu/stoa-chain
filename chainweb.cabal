@@ -272,6 +272,7 @@ library
         , Chainweb.Version.Mainnet
         , Chainweb.Version.RecapDevelopment
         , Chainweb.Version.Registry
+        , Chainweb.Version.Stoa
         , Chainweb.Version.Testnet04
         , Chainweb.Version.Utils
         , Chainweb.WebBlockHeaderDB
