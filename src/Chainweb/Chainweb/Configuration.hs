@@ -120,6 +120,7 @@ import Chainweb.Version.Development
 import Chainweb.Version.RecapDevelopment
 import Chainweb.Version.Mainnet
 import Chainweb.Version.Registry
+import Chainweb.Version.Stoa
 import Chainweb.Time
 
 import P2P.Node.Configuration
@@ -432,7 +433,7 @@ validateChainwebVersion v = do
             , sshow (_versionName v)
             ]
     where
-    isDevelopment = _versionCode v `elem` [_versionCode dv | dv <- [recapDevnet, devnet]]
+    isDevelopment = _versionCode v `elem` [_versionCode dv | dv <- [recapDevnet, devnet, stoa]]
 
 validateBackupConfig :: ConfigValidation BackupConfig []
 validateBackupConfig c =
@@ -452,7 +453,7 @@ defaultChainwebConfiguration v = ChainwebConfiguration
     , _configP2p = defaultP2pConfiguration
     , _configThrottling = defaultThrottlingConfig
     , _configMempoolP2p = defaultEnableConfig defaultMempoolP2pConfig
-    , _configBlockGasLimit = 150_000
+    , _configBlockGasLimit = 400_000
     , _configLogGas = False
     , _configMinGasPrice = 1e-8
     , _configPactQueueSize = 2000

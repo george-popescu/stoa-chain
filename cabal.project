@@ -221,3 +221,7 @@ allow-newer: lrucaching:base-compat
 --
 -- Please add a comment for each entry that outlines why it is needed and when
 -- it can be removed.
+
+-- bytesmith >= 0.3.14 has a Text constructor incompatibility with text-2.0.x
+-- (shipped with GHC 9.6.x). Can be removed when upgrading to GHC >= 9.8.
+constraints: bytesmith < 0.3.14
