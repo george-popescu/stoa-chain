@@ -1,0 +1,9 @@
+code: |-
+  (coin.A_InitialiseStoaChain "stoa-foundation" (read-keyset "foundation-ks"))
+data:
+  foundation-ks: ["9329f53343a9628ad20ee22d254363c4556dfd1b732ccab6c2a01b0ad35a9a0c"]
+  stoa-ns.stoa_master_one: ["7f22e4f9dbbffc2ed2a92cfec194c9d1ca60df0f9464ef2960d8c437eb5e0ad5"]
+nonce: stoa-init-chain0
+keyPairs:
+  - public: "7f22e4f9dbbffc2ed2a92cfec194c9d1ca60df0f9464ef2960d8c437eb5e0ad5"
+    secret: "e5ddc2bbc63d000b389e5ce16758e4976123528849bbef3d25c8e88edbbf6e27"

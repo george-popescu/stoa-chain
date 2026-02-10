@@ -1,0 +1,9 @@
+codeFile: ../../namespaces/ns-install.pact
+data:
+  ns-admin-keyset: ["7f22e4f9dbbffc2ed2a92cfec194c9d1ca60df0f9464ef2960d8c437eb5e0ad5"]
+  ns-operate-keyset: ["7f22e4f9dbbffc2ed2a92cfec194c9d1ca60df0f9464ef2960d8c437eb5e0ad5"]
+  ns-genesis-keyset:
+    keys: []
+    pred: "="
+nonce: stoa-namespaces
+keyPairs: []

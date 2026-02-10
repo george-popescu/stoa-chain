@@ -1,0 +1,3 @@
+codeFile: ../../stoa-coin/new-coin.pact
+nonce: stoa-coin-deploy
+keyPairs: []
