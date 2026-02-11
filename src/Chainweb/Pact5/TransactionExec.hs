@@ -131,6 +131,7 @@ import qualified Pact.Types.Capability as Pact4
 import qualified Pact.Types.Names as Pact4
 import qualified Pact.Types.Runtime as Pact4
 import qualified Pact.Core.Errors as Pact5
+import qualified Pact.Core.ChainData as Pact5
 
 -- Note [Throw out verifier proofs eagerly]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -488,15 +489,21 @@ applyCoinbase logger db reward txCtx = do
   eCoinbaseTxResult <-
     evalExecTerm Transactional
       db noSPVSupport freeGasEnv flags SimpleNamespacePolicy
-      (ctxToPublicData noPublicMeta txCtx)
+      (ctxToPublicData coinbaseMeta txCtx)
       MsgData
         { mdHash = coinbaseHash
         , mdData = coinbaseData
         , mdSigners = []
         , mdVerifiers = []
         }
-      -- applyCoinbase injects a magic capability to get permission to mint tokens
-      (emptyCapState & csSlots .~ [CapSlot (coinCap "COINBASE" []) []])
+      -- applyCoinbase injects magic capabilities: COINBASE for minting,
+      -- and DEBIT for the miner account so that the STOA contract's
+      -- vault injection (C_URV|Inject) can transfer from the miner
+      -- without requiring a signer.
+      (emptyCapState & csSlots .~
+        [ CapSlot (coinCap "COINBASE" []) []
+        , CapSlot (coinCap "DEBIT" [PString $ _minerId mid]) []
+        ])
       -- TODO: better info here might be very valuable for debugging
       (noSpanInfo <$ coinbaseTerm)
   case eCoinbaseTxResult of
@@ -519,6 +526,11 @@ applyCoinbase logger db reward txCtx = do
   where
   parentBlockHash = view blockHash $ _parentHeader $ _tcParentHeader txCtx
   Miner mid mks = _tcMiner txCtx
+  -- Provide the correct chain-id so the coin contract can distinguish
+  -- chain 0 (which does vault injection) from other chains.
+  coinbaseMeta = noPublicMeta
+    { Pact5._pmChainId = Pact5.ChainId (toText $ _chainId txCtx)
+    }
 
 -- | Apply (forking) upgrade transactions and module cache updates
 -- at a particular blockheight.
