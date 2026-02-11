@@ -411,3 +411,188 @@
 
 (expect "receiver credited on chain 9" 1.5 (get-balance "xreceiver4"))
 (commit-tx)
+
+;; ======================================================
+;; Plan 04-02: Multi-Year Emission Split Verification
+;; Verifies TOKN-04 (90/10 split) and TOKN-05 (vault injection)
+;; at years 0, 1, and 10
+;; ======================================================
+
+;; ======================================================
+;; Test 1: Emission split percentage verification at year 0
+;; ======================================================
+
+(begin-tx "Year 0 emission split verification")
+(use coin)
+(env-chain-data {"chain-id": "1", "block-time": (time "2026-06-15T12:00:00Z")})
+
+;; Call URC_Emissions and verify exact values and 90/10 ratio
+(let ((emissions (URC_Emissions)))
+  (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+
+    ;; Verify exact emission values at year 0
+    (expect "Year 0 block-emission" 0.414383955844 block-em)
+    (expect "Year 0 urv-emission" 0.46042661761 urv-em)
+
+    ;; Verify total-block-emission reconstructed from block-em + urv-em/10
+    ;; total = block-em + remaining, where remaining = urv-em / chains
+    (let ((total-block-em (+ block-em (/ urv-em 10.0))))
+      ;; total should be approximately 0.460426617605 (within rounding)
+      (expect "Year 0 total block emission in range" true
+        (and (> total-block-em 0.460426) (< total-block-em 0.460428)))
+    )
+
+    ;; Verify 90/10 ratio: block-em / (block-em + urv-em/10) ~ 0.9
+    (let ((ratio (/ block-em (+ block-em (/ urv-em 10.0)))))
+      (expect "Year 0 miner ratio approximately 90%" true
+        (and (> ratio 0.8999) (< ratio 0.9001)))
+    )
+  ))
+
+;; Verify yearly emission value
+(expect "Year 0 yearly emission is 4840000" 4840000.0 (UC_YearEmission 0))
+
+(commit-tx)
+
+;; ======================================================
+;; Test 2: Emission split at year 1 (2027)
+;; ======================================================
+
+(begin-tx "Year 1 emission split verification")
+(use coin)
+(env-chain-data {"chain-id": "1", "block-time": (time "2027-06-15T12:00:00Z")})
+
+(let ((emissions (URC_Emissions)))
+  (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+
+    ;; Verify exact emission values at year 1
+    (expect "Year 1 block-emission" 0.407025634069 block-em)
+    (expect "Year 1 urv-emission" 0.45225070453 urv-em)
+
+    ;; Verify 90/10 ratio holds at year 1
+    (let ((ratio (/ block-em (+ block-em (/ urv-em 10.0)))))
+      (expect "Year 1 miner ratio approximately 90%" true
+        (and (> ratio 0.8999) (< ratio 0.9001)))
+    )
+
+    ;; Verify year 1 values are less than year 0 (declining emissions)
+    (expect "Year 1 block-emission < year 0" true (< block-em 0.414383955844))
+    (expect "Year 1 urv-emission < year 0" true (< urv-em 0.46042661761))
+  ))
+
+;; Verify yearly emission value
+(let ((ye1 (UC_YearEmission 1)))
+  (expect "Year 1 yearly emission ~4754059" true
+    (and (> ye1 4754059.0) (< ye1 4754060.0)))
+)
+
+(commit-tx)
+
+;; ======================================================
+;; Test 3: Emission split at year 10 (2036)
+;; ======================================================
+
+(begin-tx "Year 10 emission split verification")
+(use coin)
+(env-chain-data {"chain-id": "1", "block-time": (time "2036-06-15T12:00:00Z")})
+
+(let ((emissions (URC_Emissions)))
+  (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+
+    ;; Verify exact emission values at year 10
+    (expect "Year 10 block-emission" 0.348658319546 block-em)
+    (expect "Year 10 urv-emission" 0.38739813283 urv-em)
+
+    ;; Verify 90/10 ratio holds at year 10
+    (let ((ratio (/ block-em (+ block-em (/ urv-em 10.0)))))
+      (expect "Year 10 miner ratio approximately 90%" true
+        (and (> ratio 0.8999) (< ratio 0.9001)))
+    )
+
+    ;; Verify year 10 values are less than year 1 (declining emissions)
+    (expect "Year 10 block-emission < year 1" true (< block-em 0.407025634069))
+    (expect "Year 10 urv-emission < year 1" true (< urv-em 0.45225070453))
+
+    ;; Verify year 10 values are less than year 0
+    (expect "Year 10 block-emission < year 0" true (< block-em 0.414383955844))
+  ))
+
+;; Verify yearly emission value
+(let ((ye10 (UC_YearEmission 10)))
+  (expect "Year 10 yearly emission ~4083486" true
+    (and (> ye10 4083486.0) (< ye10 4083487.0)))
+)
+
+(commit-tx)
+
+;; ======================================================
+;; Test 4: Coinbase on chain 0 at year 1 — vault injection persists
+;; Verifies TOKN-05 at a different time point than year 0
+;; ======================================================
+
+(begin-tx "Coinbase on chain 0 at year 1 — vault injection")
+(use coin)
+(env-chain-data {"chain-id": "0", "block-time": (time "2027-06-15T12:00:00Z")})
+(test-capability (COINBASE))
+
+(env-data {"miner-y1-ks": ["miner-y1-key"]})
+(env-keys ["miner-y1-key"])
+
+;; Capture vault STOA supply before coinbase
+(let ((vault-before (UR_URV|VaultSupply)))
+
+  ;; Execute coinbase on chain 0 at year 1
+  (coinbase "miner-year1" (read-keyset "miner-y1-ks") 0.0)
+
+  ;; Get year 1 emissions for verification
+  (let ((emissions (URC_Emissions)))
+    (let ((block-em (at 0 emissions)) (urv-em (at 1 emissions)))
+
+      ;; Miner gets block-emission only (urv-emission transferred to vault)
+      (expect "Year 1 chain-0 miner gets block-emission" block-em
+        (get-balance "miner-year1"))
+
+      ;; Vault STOA supply increased by urv-emission
+      (expect "Year 1 vault supply increased by urv-emission"
+        (+ vault-before urv-em) (UR_URV|VaultSupply))
+
+      ;; Year 1 block-emission is less than year 0 block-emission (demonstrating decline)
+      (expect "Year 1 miner reward < year 0 miner reward" true
+        (< block-em 0.414383955844))
+
+      ;; Year 1 urv-emission is less than year 0 urv-emission
+      (expect "Year 1 vault injection < year 0 vault injection" true
+        (< urv-em 0.46042661761))
+    )))
+(commit-tx)
+
+;; ======================================================
+;; Test 5: Coinbase on chain 5 at year 1 — no vault interaction
+;; ======================================================
+
+(begin-tx "Coinbase on chain 5 at year 1 — no vault interaction")
+(use coin)
+(env-chain-data {"chain-id": "5", "block-time": (time "2027-06-15T12:00:00Z")})
+(test-capability (COINBASE))
+
+(env-data {"miner-c5-ks": ["miner-c5-key"]})
+(env-keys ["miner-c5-key"])
+
+;; Execute coinbase on chain 5 (non-zero chain, no vault interaction)
+(coinbase "miner-chain5" (read-keyset "miner-c5-ks") 0.0)
+
+;; Get year 1 emissions
+(let ((emissions (URC_Emissions)))
+  (let ((block-em (at 0 emissions)))
+
+    ;; Miner gets block-emission only (no urv-emission on non-zero chains)
+    (expect "Chain 5 miner gets block-emission only" block-em
+      (get-balance "miner-chain5"))
+  ))
+
+;; Vault operations are restricted to chain 0
+(expect-failure "Vault supply read fails on chain 5"
+  "restricted to ChainId 0"
+  (UR_URV|VaultSupply))
+
+(commit-tx)
