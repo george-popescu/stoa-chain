@@ -5,8 +5,7 @@
 {-# language QuasiQuotes #-}
 {-# language ViewPatterns #-}
 
--- | Stoa chain version definition. Uses devnet genesis payloads temporarily
--- (Phase 3 generates real ones).
+-- | Stoa chain version definition.
 
 module Chainweb.Version.Stoa(stoa, pattern Stoa) where
 
@@ -23,10 +22,8 @@ import Chainweb.Version
 
 import Pact.Types.Verifier
 
--- Temporary genesis payloads from devnet, until Phase 3 generates
--- Stoa-specific ones.
-import qualified Chainweb.BlockHeader.Genesis.Development0Payload as DN0
-import qualified Chainweb.BlockHeader.Genesis.Development1to19Payload as DNN
+import qualified Chainweb.BlockHeader.Genesis.Stoa0Payload as S0
+import qualified Chainweb.BlockHeader.Genesis.Stoa1to9Payload as SN
 
 pattern Stoa :: ChainwebVersion
 pattern Stoa <- ((== stoa) -> True) where
@@ -48,8 +45,8 @@ stoa = ChainwebVersion
         { _genesisBlockTarget = AllChains $ HashTarget (maxBound `div` 100_000)
         , _genesisTime = AllChains $ BlockCreationTime [timeMicrosQQ| 2026-03-01T00:00:00.000000 |]
         , _genesisBlockPayload = onChains $ concat
-            [ [(unsafeChainId 0, DN0.payloadBlock)]
-            , [(unsafeChainId i, DNN.payloadBlock) | i <- [1..9]]
+            [ [(unsafeChainId 0, S0.payloadBlock)]
+            , [(unsafeChainId i, SN.payloadBlock) | i <- [1..9]]
             ]
         }
 
