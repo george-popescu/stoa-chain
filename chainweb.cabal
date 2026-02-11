@@ -146,6 +146,8 @@ library
         , Chainweb.BlockHeader.Genesis.Pact53TransitionTimedCPM1to9Payload
         , Chainweb.BlockHeader.Genesis.QuirkedGasPact5InstantTimedCPM0Payload
         , Chainweb.BlockHeader.Genesis.QuirkedGasPact5InstantTimedCPM1to9Payload
+        , Chainweb.BlockHeader.Genesis.Stoa0Payload
+        , Chainweb.BlockHeader.Genesis.Stoa1to9Payload
         , Chainweb.BlockHeader.Genesis.Testnet040Payload
         , Chainweb.BlockHeader.Genesis.Testnet041to19Payload
         , Chainweb.BlockHeader.Genesis.Mainnet0Payload

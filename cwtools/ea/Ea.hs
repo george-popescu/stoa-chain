@@ -60,9 +60,11 @@ import Data.Text.Lazy qualified as TL
 import Data.Text.Lazy.Builder qualified as TB
 import Data.Traversable
 import Data.Vector qualified as V
+import Data.Word (Word32)
 import Ea.Genesis
 import GHC.Exts(the)
 import Pact.ApiReq
+import Pact.Types.ChainId qualified as Pact
 import Pact.Types.ChainMeta
 import Pact.Types.Command hiding (Payload)
 import System.LogLevel
@@ -150,7 +152,7 @@ mkPayload :: Genesis -> IO Text
 mkPayload gen@(Genesis v _ cidr@(ChainIdRange l u) c k a ns cc) = do
     printf ("Generating Genesis Payload for %s on " <> show_ cidr <> "...\n") $ show v
     payloadModules <- for [l..u] $ \cid ->
-        genPayloadModule v (fullGenesisTag gen) (unsafeChainId cid) =<< mkChainwebTxs txs
+        genPayloadModule v (fullGenesisTag gen) (unsafeChainId cid) =<< mkChainwebTxs l txs
     -- checks that the modules on each chain are the same
     evaluate $ the payloadModules
   where
@@ -194,11 +196,11 @@ genPayloadModule v tag cid cwTxs =
                     execNewGenesisBlock noMiner (V.fromList cwTxs)
             return $ TL.toStrict $ TB.toLazyText $ payloadModuleCode tag payloadWO
 
-mkChainwebTxs :: [FilePath] -> IO [Pact4.UnparsedTransaction]
-mkChainwebTxs txFiles = mkChainwebTxs' =<< traverse mkTx txFiles
+mkChainwebTxs :: Word32 -> [FilePath] -> IO [Pact4.UnparsedTransaction]
+mkChainwebTxs cid txFiles = mkChainwebTxs' cid =<< traverse mkTx txFiles
 
-mkChainwebTxs' :: [Command Text] -> IO [Pact4.UnparsedTransaction]
-mkChainwebTxs' rawTxs =
+mkChainwebTxs' :: Word32 -> [Command Text] -> IO [Pact4.UnparsedTransaction]
+mkChainwebTxs' cid rawTxs =
     forM rawTxs $ \cmd -> do
         let parsedCmd =
               traverse Aeson.eitherDecodeStrictText cmd
@@ -206,10 +208,14 @@ mkChainwebTxs' rawTxs =
           Left err -> error err
           Right unparsedTx -> do
             let t = toTxCreationTime (Time (TimeSpan 0))
-            return $! Pact4.mkPayloadWithTextOldUnparsed <$> (unparsedTx & setTxTime t & setTTL defaultMaxTTL)
+                cidText = T.pack (show cid)
+            return $! Pact4.mkPayloadWithTextOldUnparsed <$>
+              (unparsedTx & setTxTime t & setTTL defaultMaxTTL
+                          & setChainId (Pact.ChainId cidText))
   where
     setTxTime = set (cmdPayload . pMeta . pmCreationTime)
     setTTL = set (cmdPayload . pMeta . pmTTL)
+    setChainId = set (cmdPayload . pMeta . pmChainId)
 
 mkTx :: FilePath -> IO (Command Text)
 mkTx yamlFile = snd <$> mkApiReq yamlFile
@@ -308,7 +314,7 @@ genTxModules = void $ do
 genTxModule :: Text -> [FilePath] -> IO ()
 genTxModule tag txFiles = do
     putStrLn $ "Generating tx module for " ++ show tag
-    cwTxs <- mkChainwebTxs txFiles
+    cwTxs <- mkChainwebTxs 0 txFiles
 
     let encTxs = map quoteTx cwTxs
         quoteTx tx = "    \"" <> encTx tx <> "\""
