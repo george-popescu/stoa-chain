@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Surgically modify existing Kadena codebase to produce a working node with STOA tokenomics, 10 chains, and increased gas capacity
-**Current focus:** Phase 3 complete. Ready for Phase 4 - Version Wiring
+**Current focus:** Phase 4 complete. All TOKN requirements verified. Ready for Phase 5.
 
 ## Current Position
 
-Phase: 3 of 5 (Genesis Payload Generation) -- COMPLETE
-Plan: 2 of 2 in current phase (complete)
-Status: Phase 3 complete. Genesis payloads generated and wired into Stoa version. Ready for Phase 4.
-Last activity: 2026-02-11 -- Plan 03-02 executed (Ea tool run + payload wiring + full build verified)
+Phase: 4 of 5 (Tokenomics) -- COMPLETE
+Plan: 2 of 2 in current phase (04-02 complete)
+Status: All TOKN requirements verified. 90/10 split confirmed at years 0, 1, 10. Vault injection tested. Ready for Phase 5.
+Last activity: 2026-02-11 -- Plan 04-02 executed (emission split verification)
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~24 min each
-- Total execution time: ~3h 3min
+- Total plans completed: 8
+- Average duration: ~20 min each
+- Total execution time: ~3h 18min
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [██████░░░░] 60%
 | 1 | 2/2 | ~2h | ~1h |
 | 2 | 2/2 | 45min | ~22min |
 | 3 | 2/2 | 18min | 9min |
+| 4 | 2/2 | 15min | ~8min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (complete), 02-02 (complete), 03-01 (complete), 03-02 (complete)
-- Trend: Accelerating (Phase 3 complete)
+- Last 5 plans: 03-01 (complete), 03-02 (complete), 04-01 (complete), 04-02 (complete)
+- Trend: Accelerating (Phase 4 complete, fastest phase yet)
 
 *Updated after each plan completion*
 
@@ -52,6 +53,8 @@ Recent decisions affecting current work:
 - Plan 02-02: Gas default raised to 400k (safe via clamping); 3 pre-existing dependency conflicts fixed (hourglass, asn1-types, bytesmith); full build verified (237 modules, zero warnings)
 - Plan 03-01: 8 Ed25519 dev keys generated via pact -g; foundation account named "stoa-foundation"; cabal build ea succeeds with Stoa Genesis records
 - Plan 03-02: Ea tool chain-id fix required for STOA's UEV_ChainZero; genesis payloads generated and wired; 239 modules compile zero warnings
+- Plan 04-01: STOA miner rewards CSV generated with UC_YearEmission formula; both SHA512 hashes updated; legacy compat tests replaced with Stoa-specific tests; blockMinerReward divides by 10 via Petersen graph
+- Plan 04-02: 90/10 emission split verified at years 0, 1, 10 via exact Pact REPL values; vault injection confirmed at multiple time points; chain-0-only vault restriction tested
 
 ### Pending Todos
 
@@ -66,5 +69,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-02-PLAN.md (Ea tool run + payload wiring)
-Resume file: Phase 4 -- Version Wiring
+Stopped at: Completed 04-02-PLAN.md (emission split verification -- Phase 4 complete)
+Resume file: Phase 5 -- Integration Testing
