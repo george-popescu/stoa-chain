@@ -14,7 +14,7 @@ apt update && apt upgrade -y -o Dpkg::Options::="--force-confold"
 apt install -y -o Dpkg::Options::="--force-confold" \
   build-essential curl libffi-dev libgmp-dev libncurses-dev \
   libssl-dev libtinfo-dev zlib1g-dev pkg-config git \
-  librocksdb-dev libsnappy-dev libbz2-dev liblz4-dev libzstd-dev
+  librocksdb-dev libsnappy-dev libbz2-dev liblz4-dev libzstd-dev libgflags-dev
 
 echo "=== [2/7] Create stoa user ==="
 id stoa &>/dev/null || useradd -r -m -s /bin/bash stoa
