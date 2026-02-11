@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE NumDecimals #-}
 {-# LANGUAGE TypeApplications #-}
@@ -19,15 +18,10 @@ module Chainweb.Test.MinerReward
 import Chainweb.BlockHeight
 import Chainweb.MinerReward
 import Chainweb.Test.Orphans.Internal ()
-import Chainweb.Utils
-import Chainweb.Version
-import Chainweb.Version.Mainnet
+import Chainweb.Version.Stoa
 
-import Data.ByteString.Lazy qualified as BL
-import Data.Csv qualified as CSV
 import Data.Decimal
 import Data.Map.Strict qualified as M
-import Data.Vector qualified as V
 import Data.Word
 
 import Test.Tasty
@@ -57,15 +51,16 @@ tests = testGroup "MinerReward"
     , testCase "minerRewardsFitWord64" test_minerRewardsFitWord64
     , testCase "expectedMinerRewardsHash" test_expectedMinerRewardsHash
     , testCase "expectedRawMinerRewardsHash" test_expectedRawMinerRewardsHash
-    , testCase "assert blockMinerRewardLegacyCompact" test_blockMinerRewardLegacyCompat
-    , testProperty "blockMinerRewardLegacyCompat" prop_blockMinerRewardLegacyCompat
+    , testCase "stoaBlockRewardDividesByTen" test_stoaBlockRewardDividesByTen
     ]
 
 -- --------------------------------------------------------------------------
 -- Properties and Assertions
 
+-- | The last non-zero entry in the STOA miner rewards CSV.
+-- The terminal 0 entry is at height 127278720.
 maxRewardHeight :: BlockHeight
-maxRewardHeight = 125538057
+maxRewardHeight = 127278720
 
 prop_kdaToStuToKda :: PositiveKda -> Property
 prop_kdaToStuToKda (PositiveKda kda) = stuToKda (kdaToStu kda) === kda
@@ -73,22 +68,7 @@ prop_kdaToStuToKda (PositiveKda kda) = stuToKda (kdaToStu kda) === kda
 prop_stuToKdaToStu :: Stu -> Property
 prop_stuToKdaToStu stu = kdaToStu (stuToKda stu) === stu
 
-prop_blockMinerRewardLegacyCompat :: BlockHeight -> Property
-prop_blockMinerRewardLegacyCompat h
-    | h < maxRewardHeight - 2 =
-        legacyBlockMinerReward v h === minerRewardKda (blockMinerReward v h)
-    | h == maxRewardHeight - 1 =
-        legacyBlockMinerReward v h =/= minerRewardKda (blockMinerReward v h)
-    | h == maxRewardHeight =
-        legacyBlockMinerReward v h === minerRewardKda (blockMinerReward v h)
-    | otherwise = expectFailure
-        -- legacyMinerRewards is expected to throw an exception
-        $ legacyBlockMinerReward v h === minerRewardKda (blockMinerReward v h)
-
-  where
-    v = Mainnet01
-
--- 2.304523
+-- | Verify that rewards are 0 at and beyond the terminal block height.
 --
 test_finalMinerReward :: Assertion
 test_finalMinerReward = do
@@ -98,12 +78,14 @@ test_finalMinerReward = do
     rewardIsZero h = assertEqual
         "The final miner reward is 0"
         (Kda 0)
-        (minerRewardKda (blockMinerReward Mainnet01 h))
+        (minerRewardKda (blockMinerReward Stoa h))
 
+-- | STOA maximum reward is ~4.605 (total across all chains).
+-- Verify the maximum is bounded.
 test_minerRewardsMax :: Assertion
 test_minerRewardsMax = assertBool
-    "maximum miner reward is smaller than 1e12 * 24"
-    (_stu (maximum minerRewards) < 1e12 * 24)
+    "maximum miner reward is smaller than 1e12 * 5"
+    (_stu (maximum minerRewards) < 1e12 * 5)
 
 test_minerRewardsFitWord64 :: Assertion
 test_minerRewardsFitWord64 = assertBool
@@ -122,62 +104,21 @@ test_expectedRawMinerRewardsHash = assertEqual
     expectedRawMinerRewardsHash
     (rawMinerRewardsHash rawMinerRewards)
 
--- --------------------------------------------------------------------------
--- Backward compatibility with legacy implementation
-
--- | Miner rewards are expected to match the legacy values execpt for
+-- | Verify that blockMinerReward divides the CSV value by 10 (Petersen graph
+-- order) for the Stoa version. The first CSV entry has total reward
+-- ~4.604266176 STOA across all chains. Per chain: ~0.460426617 STOA.
 --
--- - block height 125538056 and
--- - block heights strictly larger than 125538057
---
-test_blockMinerRewardLegacyCompat :: Assertion
-test_blockMinerRewardLegacyCompat = do
-    mapM_ rewardsMatch [0..10000]
-    mapM_ rewardsMatch [0,1000..maxRewardHeight - 2]
-    mapM_ rewardsMatch [maxRewardHeight - 1000 .. maxRewardHeight - 2]
-    mapM_ rewardsMatch [maxRewardHeight]
-    assertEqual
-        "the only block height that is not compatible with the legacy reward computation is 125538056"
-        [maxRewardHeight - 1]
-        legacyCompatExceptions
-  where
-    v = Mainnet01
-    rewardsMatch h = assertEqual
-        "miner reward value matches the legacy value"
-        (legacyBlockMinerReward v h)
-        (minerRewardKda (blockMinerReward v h))
-
-    legacyCompatExceptions = M.keys $ M.filterWithKey
-        (\k _ -> legacyBlockMinerReward v k /= minerRewardKda (blockMinerReward v k))
-        minerRewards
-
--- This should be a CAF and can thus not include the computation in
--- 'mkLegacyMinerRewards' which has a 'HasCallStack' constraint.
---
-legacyMinerRewards :: M.Map BlockHeight Kda
-legacyMinerRewards = Kda <$> mkLegacyMinerRewards
-{-# NOINLINE legacyMinerRewards #-}
-
--- | The algorithm that was used to parse the rewards table until end of 2024.
---
-mkLegacyMinerRewards :: HasCallStack => M.Map BlockHeight Decimal
-mkLegacyMinerRewards =
-    case CSV.decode CSV.NoHeader (BL.fromStrict rawMinerRewards) of
-      Left e -> error
-        $ "cannot construct miner reward map: " <> sshow e
-      Right vs -> M.fromList . V.toList . V.map formatRow $ vs
-  where
-    formatRow :: (Word64, CsvDecimal) -> (BlockHeight, Decimal)
-    formatRow (!a,!b) = (BlockHeight $ int a, (_csvDecimal b))
-
-legacyBlockMinerReward
-    :: ChainwebVersion
-    -> BlockHeight
-    -> Kda
-legacyBlockMinerReward v h =
-    case M.lookupGE h legacyMinerRewards of
-        Nothing -> error "The end of the chain has been reached"
-        Just (_, m) -> Kda $ roundTo 8 (_kda m / n)
-  where
-    !n = int . order $ chainGraphAt v h
-
+test_stoaBlockRewardDividesByTen :: Assertion
+test_stoaBlockRewardDividesByTen = do
+    -- Get the per-chain reward at height 0
+    let perChain = blockMinerReward Stoa 0
+    -- Get the total (CSV) reward at height 0
+    case M.lookupGE (BlockHeight 0) minerRewards of
+        Nothing -> assertFailure "minerRewards table is empty"
+        Just (_, totalStu) -> do
+            -- Per chain should be total / 10
+            let expected = divideStu totalStu 10
+            assertEqual
+                "blockMinerReward Stoa 0 == CSV total / 10 (Petersen graph order)"
+                (MinerReward expected)
+                perChain
