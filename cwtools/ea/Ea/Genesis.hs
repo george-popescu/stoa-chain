@@ -49,6 +49,10 @@ module Ea.Genesis
 , mainnet9
 , mainnetKAD
 
+  -- * Stoa Genesis Txs
+, stoa0
+, stoaN
+
   -- * Coin Contract genesis
 , coinContractV1
 , coinContractV2
@@ -76,6 +80,7 @@ import Chainweb.Version
 import Chainweb.Version.Development
 import Chainweb.Version.RecapDevelopment
 import Chainweb.Version.Mainnet
+import Chainweb.Version.Stoa
 import Chainweb.Version.Testnet04
 
 -- ---------------------------------------------------------------------- --
@@ -233,6 +238,39 @@ devAllocations = "pact/genesis/devnet/allocations.yaml"
 
 devnetKadOps :: FilePath
 devnetKadOps = "pact/genesis/devnet/kad-ops-grants.yaml"
+
+-- ---------------------------------------------------------------------- --
+-- Stoa
+
+stoaCoinContract :: FilePath
+stoaCoinContract = "pact/genesis/stoa/load-stoa-coin.yaml"
+
+stoaNs :: FilePath
+stoaNs = "pact/genesis/stoa/ns.yaml"
+
+stoaKeysets :: FilePath
+stoaKeysets = "pact/genesis/stoa/keysets.yaml"
+
+stoaInitChain0 :: FilePath
+stoaInitChain0 = "pact/genesis/stoa/init-chain0.yaml"
+
+stoa0 :: Genesis
+stoa0 = Genesis
+    { _version = Stoa
+    , _tag = "Stoa"
+    , _txChainIds = onlyChainId 0
+    , _coinbase = Just stoaInitChain0
+    , _keysets = Just stoaKeysets
+    , _allocations = Nothing
+    , _namespaces = Just stoaNs
+    , _coinContract = [stoaCoinContract]
+    }
+
+stoaN :: Genesis
+stoaN = stoa0
+    & txChainIds .~ mkChainIdRange 1 9
+    & coinbase .~ Nothing
+    & keysets .~ Nothing
 
 -- ---------------------------------------------------------------------- --
 -- CPM test versions

@@ -46,6 +46,7 @@ import Chainweb.Version
 import Chainweb.Version.Development (pattern Development)
 import Chainweb.Version.RecapDevelopment (pattern RecapDevelopment)
 import Chainweb.Version.Registry (registerVersion)
+import Chainweb.Version.Stoa (stoa)
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Lens
@@ -74,6 +75,7 @@ main :: IO ()
 main = do
     registerVersion RecapDevelopment
     registerVersion Development
+    registerVersion stoa
 
     mapConcurrently_ id
       [ recapDevnet
@@ -86,6 +88,7 @@ main = do
       , testnet04
       , mainnet
       , genTxModules
+      , stoaNet
       , genCoinV3Payloads
       , genCoinV4Payloads
       , genCoinV5Payloads
@@ -108,6 +111,7 @@ main = do
     pact53Transitionnet = mkPayloads [pact53TransitionCPM0, pact53TransitionCPMN]
     quirkedPact5Instantnet = mkPayloads [quirkedPact5InstantCPM0, quirkedPact5InstantCPMN]
     testnet04 = mkPayloads [testnet040, testnet04N]
+    stoaNet = mkPayloads [stoa0, stoaN]
     mainnet = mkPayloads
       [ mainnet0
       , mainnet1
