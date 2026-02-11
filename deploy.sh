@@ -25,7 +25,7 @@ echo "=== [3/7] Install GHCup (GHC 9.6.7 + Cabal 3.10) ==="
 su - stoa -c 'export BOOTSTRAP_HASKELL_NONINTERACTIVE=1 && \
   export BOOTSTRAP_HASKELL_GHC_VERSION=9.6.7 && \
   export BOOTSTRAP_HASKELL_CABAL_VERSION=3.10.3.0 && \
-  curl --proto "=https" --tlsv1.2 -sSf https://get-haskell.org | sh'
+  curl --proto "=https" --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh'
 
 echo "=== [4/7] Clone and build ==="
 su - stoa -c '
