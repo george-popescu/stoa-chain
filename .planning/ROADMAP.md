@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Contract Verification** - Verify STOA coin contract works correctly in Pact REPL before any integration
 - [x] **Phase 2: Version Definition and Gas Limits** - Create Stoa version with 10-chain Petersen graph and updated gas configuration
-- [ ] **Phase 3: Genesis Payload Generation** - Generate genesis payloads for chain 0 (full init) and chains 1-9 (coin only) via Ea tool
+- [x] **Phase 3: Genesis Payload Generation** - Generate genesis payloads for chain 0 (full init) and chains 1-9 (coin only) via Ea tool
 - [ ] **Phase 4: Tokenomics** - Create STOA miner rewards CSV with declining emissions and update hash constants
 - [ ] **Phase 5: Integration and Validation** - Build, boot, mine, and validate cross-chain operations on all 10 chains
 
@@ -63,8 +63,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Create genesis YAML files and Ea tool Genesis records for Stoa (GENS-01, GENS-02)
-- [ ] 03-02-PLAN.md — Run Ea tool, wire generated payloads into Stoa version, verify build (GENS-03, GENS-04, GENS-05, GENS-06, GENS-07)
+- [x] 03-01-PLAN.md — Create genesis YAML files and Ea tool Genesis records for Stoa (GENS-01, GENS-02)
+- [x] 03-02-PLAN.md — Run Ea tool, wire generated payloads into Stoa version, verify build (GENS-03, GENS-04, GENS-05, GENS-06, GENS-07)
 
 ### Phase 4: Tokenomics
 **Goal**: STOA-specific miner rewards are defined with a declining emission schedule that correctly divides by 10 chains, and the 90/10 miner/vault split operates correctly
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Contract Verification | 2/2 | COMPLETE | 2026-02-10 |
 | 2. Version Definition and Gas Limits | 2/2 | COMPLETE | 2026-02-11 |
-| 3. Genesis Payload Generation | 0/2 | Not started | - |
+| 3. Genesis Payload Generation | 2/2 | COMPLETE | 2026-02-11 |
 | 4. Tokenomics | 0/1 | Not started | - |
 | 5. Integration and Validation | 0/2 | Not started | - |
