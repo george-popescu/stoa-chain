@@ -108,3 +108,19 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. Genesis Payload Generation | 2/2 | COMPLETE | 2026-02-11 |
 | 4. Tokenomics | 2/2 | COMPLETE | 2026-02-11 |
 | 5. Integration and Validation | 0/2 | Not started | - |
+
+### Phase 6: Regenerate genesis payloads with updated multi-sig governance, new modules, and 2026-02-24T19:00:00Z genesis time
+
+**Goal:** Replace the 4-transaction genesis architecture with Mihai's 5-transaction architecture featuring namespaced interfaces (stoa-ns), multi-sig governance with stoic-predicates, util modules, stoic-xchain module, and genesis time 2026-02-24T19:00:00Z
+**Depends on:** Phase 5
+**Requirements**: GEN-06
+**Success Criteria** (what must be TRUE):
+  1. All 5 new pact genesis files and their YAML wrappers exist in pact/genesis/stoa/ with correct transaction ordering
+  2. GENESIS-TIME in stoa-genesis-4.pact and _genesisTime in Stoa.hs both equal 2026-02-24T19:00:00Z
+  3. The Ea tool successfully generates Stoa0Payload.hs and Stoa1to9Payload.hs from the new 5-transaction genesis
+  4. cabal build chainweb-node compiles with zero warnings
+**Plans:** 1/2 plans executed
+
+Plans:
+- [ ] 06-01-PLAN.md -- Copy pact files, create YAML wrappers, update GENESIS-TIME constants (GEN-06)
+- [ ] 06-02-PLAN.md -- Update Ea Genesis records, run Ea tool, rebuild and verify (GEN-06)

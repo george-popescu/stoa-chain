@@ -242,35 +242,34 @@ devnetKadOps = "pact/genesis/devnet/kad-ops-grants.yaml"
 -- ---------------------------------------------------------------------- --
 -- Stoa
 
-stoaCoinContract :: FilePath
-stoaCoinContract = "pact/genesis/stoa/load-stoa-coin.yaml"
-
-stoaNs :: FilePath
-stoaNs = "pact/genesis/stoa/ns.yaml"
-
-stoaKeysets :: FilePath
-stoaKeysets = "pact/genesis/stoa/keysets.yaml"
-
-stoaInitChain0 :: FilePath
-stoaInitChain0 = "pact/genesis/stoa/init-chain0.yaml"
-
 stoa0 :: Genesis
 stoa0 = Genesis
     { _version = Stoa
     , _tag = "Stoa"
     , _txChainIds = onlyChainId 0
-    , _coinbase = Just stoaInitChain0
-    , _keysets = Just stoaKeysets
+    , _coinbase = Nothing
+    , _keysets = Nothing
     , _allocations = Nothing
-    , _namespaces = Just stoaNs
-    , _coinContract = [stoaCoinContract]
+    , _namespaces = Nothing
+    , _coinContract =
+        [ "pact/genesis/stoa/stoa-genesis-1.yaml"
+        , "pact/genesis/stoa/stoa-genesis-2.yaml"
+        , "pact/genesis/stoa/stoa-genesis-3.yaml"
+        , "pact/genesis/stoa/stoa-genesis-4-chain0.yaml"
+        , "pact/genesis/stoa/stoa-genesis-5.yaml"
+        ]
     }
 
 stoaN :: Genesis
 stoaN = stoa0
     & txChainIds .~ mkChainIdRange 1 9
-    & coinbase .~ Nothing
-    & keysets .~ Nothing
+    & coinContract .~
+        [ "pact/genesis/stoa/stoa-genesis-1.yaml"
+        , "pact/genesis/stoa/stoa-genesis-2.yaml"
+        , "pact/genesis/stoa/stoa-genesis-3.yaml"
+        , "pact/genesis/stoa/stoa-genesis-4-chains1-9.yaml"
+        , "pact/genesis/stoa/stoa-genesis-5.yaml"
+        ]
 
 -- ---------------------------------------------------------------------- --
 -- CPM test versions
