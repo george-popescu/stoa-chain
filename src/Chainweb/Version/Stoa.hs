@@ -52,8 +52,8 @@ stoa = ChainwebVersion
             ]
         }
 
-    -- Hard cap at 500k gas per block (GAS-01)
-    , _versionMaxBlockGasLimit = Bottom (minBound, Just 500_000)
+    -- Hard cap at 2M gas per block (GAS-01)
+    , _versionMaxBlockGasLimit = Bottom (minBound, Just 2_000_000)
     , _versionMinimumBlockHeaderHistory = Bottom (minBound, Nothing)
     , _versionCheats = VersionCheats
         { _disablePow = False
