@@ -61,7 +61,7 @@ stoa = ChainwebVersion
         , _disablePact = False
         }
     , _versionDefaults = VersionDefaults
-        { _disablePeerValidation = False
+        { _disablePeerValidation = True
         , _disableMempoolSync = False
         }
     , _versionVerifierPluginNames = AllChains $ Bottom
